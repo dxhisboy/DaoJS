@@ -1,0 +1,46 @@
+<html>
+<head>
+	<title>DaoJs Demos</title>
+	<script src="dao.js"></script>
+</head>
+<body>
+	<script>
+		var db = openDatabase('mydb', '1.0', 'example', 5 * 1024 * 1024);
+		function logCallback(rt, tx){
+			console.log(rt);
+		}
+		function init(){
+			db.transaction(function (tx){
+				tx.executeSql("drop table if exists example");
+				tx.executeSql("create table example(rowid int primary key, rowdata text)");
+			});
+		}
+		function insert(json){
+			db.transaction(function(tx){
+				insertObjectToTable(JSON.parse(json), "example", tx, logCallback);
+			});
+		}
+		function insertArray(json){
+			db.transaction(function(tx){
+				insertArrayToTable(JSON.parse(json), "example", tx, logCallback);
+			});
+		}
+		function insertTidy(json){
+			db.transaction(function(tx){
+				insertTidyArrayToTable(JSON.parse(json), "example", tx, logCallback);
+			});
+		}
+
+		function efind(json){
+			db.transaction(function(tx){
+				find(JSON.parse(json), "example", tx, logCallback)
+			});
+		}
+		function efindPK(pk){
+			db.transaction(function(tx){
+				findPK(pk, "example", tx, logCallback);
+			});
+		}
+	</script>
+</body>
+</html>

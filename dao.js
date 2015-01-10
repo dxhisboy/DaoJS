@@ -14,6 +14,18 @@ function __vquotes(num){
 		ss.push("?");;
 	return "(" + ss.join(",") + ")";
 }
+function __vquotes2(rownum, colnum){
+	if (rownum * colnum == 0)
+		return "";
+	var sel = [];
+	for (var i = 0; i < colnum; i ++)
+		sel.push("?");
+	var sels = "select " + sel.join(",");
+	var ss = [];
+	for (var i = 0; i < rownum; i ++)
+		ss.push(sels);
+	return ss.join(" union all ");
+}
 
 function SqlHandler(){
 	this.success = undefined;
@@ -38,43 +50,47 @@ function objectFromResultSetI(resultSet, index, object){
 	return object;
 }
 
-function arrayFromResultSets(resultSet){
-	var len = results.rows.length;
+function arrayFromResultSet(resultSet){
+	var len = resultSet.rows.length;
 	var arr = [];
 	for (var i = 0; i < len; i ++)
-		arr.push(objectFromResultSetI(resultSet, index));
+		arr.push(objectFromResultSetI(resultSet, i));
 	return arr;
 }
 
 SqlHandler.prototype.successCallback = function(callback){
+	self = this;
 	return function(transaction, resultSet){
-		this.success = true;
-		this.rowsAffected = resultSet.rowsAffected;
-		callback(true, resultSet.rowsAffected);
+		self.success = true;
+		self.rowsAffected = resultSet.rowsAffected;
+		callback(self, transaction);
 	}
 }
 
 SqlHandler.prototype.errorCallback = function (callback){
-	return function(transaction, resultSet){
-		this.success = false;
-		this.error = error;
-		callback(false, error);
+	self = this;
+	return function(transaction, error){
+		self.success = false;
+		self.error = error;
+		callback(self, transaction);
 	}
 }
 
 SqlHandler.prototype.queryCallback = function (callback){
+	self = this;
 	return function(transaction, resultSet){
-		this.success = true;
-		this.result = arrayFromResultSet(resultSet);
-		callback(true, this.result);
+		self.success = true;
+		self.result = arrayFromResultSet(resultSet);
+		callback(self, transaction);
 	}
 }
 
 SqlHandler.prototype.PKQueryCallback = function (callback){
+	self = this;
 	return function(transaction, resultSet){
-		this.success = true;
-		this.result = arrayFromResultSet(resultSet);
-		callback(true, this.result[0]);
+		self.success = true;
+		self.result = arrayFromResultSet(resultSet);
+		callback(self, transaction);
 	}
 }
 
@@ -96,6 +112,24 @@ function insertObjectToTable(object, tableName, transaction, callback){
 	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
 }
 
+function editObjectInTable(object, tableName, transaction, callback){
+	var pk = __primaryKeys[tableName];
+	var cols = __tables[tableName];
+	var arrCol = [];
+	var arrObj = [];
+	for (var i in cols){
+		if (!(object[cols[i]] === undefined)){
+			arrCol.push(cols[i]);
+			arrObj.push(object[cols[i]]);
+		}
+	}
+	var sql =
+		"insert into or replace into " + tableName 
+		+ "(" + arrCol.join(",") + ") values"
+		+ __vquotes(arrCol.length);
+
+}
+
 function insertTidyArrayToTable(array, tableName, transaction, callback){
 	var cols = __tables[tableName];
 	var arrCol = [];
@@ -111,12 +145,14 @@ function insertTidyArrayToTable(array, tableName, transaction, callback){
 	for (var i in array){
 		var cObj = array[i];
 		for (var p in arrCol)
-			arrObj.push(cObj[p]);
+			arrObj.push(cObj[arrCol[p]]);
 	}
 	var sql = 
 		"insert into " + tableName
-		+ "(" + arrCol.join(",") + ") values"
-		+ __vquotes(arrCol.length * array.length);
+		+ "(" + arrCol.join(",") + ") "
+		+ __vquotes2(array.length, arrCol.length);
+	console.log(sql);
+	console.log(arrObj);
 	var ret = new SqlHandler();
 	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
 }
@@ -139,12 +175,14 @@ function insertArrayToTable(array, tableName, transaction, callback){
 	for (var i in array){
 		var cObj = array[i];
 		for (var p in arrCol)
-			arrObj.push(cObj[p]);
+			arrObj.push(cObj[arrCol[p]]);
 	}
+	console.log(arrCol, arrObj);
 	var sql = 
 		"insert into " + tableName
-		+ "(" + arrCol.join(",") + ") values"
-		+ __vquotes(arrCol.length * array.length);
+		+ "(" + arrCol.join(",") + ") "
+		+ __vquotes2(array.length, arrCol.length);
+	console.log(sql);
 	var ret = new SqlHandler();
 	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
 }
@@ -158,14 +196,16 @@ function find(key, tableName, transaction, callback){
 	}
 	var sql = 
 		"select * from " + tableName
-		+ " where " + arrCond.join(" and ");
+		+ " where " + arrCol.join(" and ");
 	var ret = new SqlHandler();
 	transaction.executeSql(sql, arrObj, ret.queryCallback(callback), ret.errorCallback(callback));
 }
+
 function findPK(PK, tableName, transaction, callback){
 	var sql = 
 		"select * from " + tableName
 		+ " where " + __primaryKeys[tableName] + " = ?";
+	console.log(sql);
 	var ret = new SqlHandler();
 	transaction.executeSql(sql, [PK], ret.PKQueryCallback(callback), ret.errorCallback(callback));
 }
