@@ -6,6 +6,7 @@
 <body>
 	<script>
 		var db = openDatabase('mydb', '1.0', 'example', 5 * 1024 * 1024);
+		DAO.setTable('example', ['rowid', 'rowdata'], 'rowid');
 		function logCallback(rt, tx){
 			console.log(rt);
 		}
@@ -17,30 +18,46 @@
 		}
 		function insert(json){
 			db.transaction(function(tx){
-				insertObjectToTable(JSON.parse(json), "example", tx, logCallback);
+				DAO.insertObjectToTable(JSON.parse(json), "example", tx, logCallback);
 			});
 		}
 		function insertArray(json){
 			db.transaction(function(tx){
-				insertArrayToTable(JSON.parse(json), "example", tx, logCallback);
+				DAO.insertArrayToTable(JSON.parse(json), "example", tx, logCallback);
 			});
 		}
 		function insertTidy(json){
 			db.transaction(function(tx){
-				insertTidyArrayToTable(JSON.parse(json), "example", tx, logCallback);
+				DAO.insertTidyArrayToTable(JSON.parse(json), "example", tx, logCallback);
 			});
 		}
 
-		function efind(json){
+		function find(json){
 			db.transaction(function(tx){
-				find(JSON.parse(json), "example", tx, logCallback)
+				DAO.find(JSON.parse(json), "example", tx, logCallback)
 			});
 		}
-		function efindPK(pk){
+		function findPK(pk){
 			db.transaction(function(tx){
-				findPK(pk, "example", tx, logCallback);
+				DAO.findPK(pk, "example", tx, logCallback);
 			});
 		}
+		function edit(json){
+			db.transaction(function(tx){
+				DAO.editObjectInTable(JSON.parse(json), "example", tx, logCallback);
+			});
+		}
+		function remove(json){
+			db.transaction(function(tx){
+				DAO.remove(JSON.parse(json), "example", tx, logCallback)
+			});
+		}
+		function removePK(pk){
+			db.transaction(function(tx){
+				DAO.removePK(pk, "example", tx, logCallback);
+			});
+		}
+
 	</script>
 </body>
 </html>
