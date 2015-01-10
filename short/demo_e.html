@@ -1,0 +1,58 @@
+<html>
+<head>
+	<title>DaoJs Demos</title>
+	<script src="dao_e.js"></script>
+</head>
+<body>
+	<script>
+		var db = openDatabase('mydb', '1.0', 'example', 5 * 1024 * 1024);
+		DAO.reg('example', ['rowid', 'rowdata'], 'rowid');
+		function logCallback(rt, tx){
+			console.log(rt);
+		}
+		function init(){
+			db.transaction(function (tx){
+				tx.executeSql("drop table if exists example");
+				tx.executeSql("create table example(rowid int primary key, rowdata text)");
+			});
+		}
+		function insert(json){
+			db.transaction(function(tx){
+				DAO.add(JSON.parse(json), "example", tx, logCallback);
+			});
+		}
+		function insertArray(json){
+			db.transaction(function(tx){
+				DAO.addAll(JSON.parse(json), "example", tx, logCallback);
+			});
+		}
+
+		function find(json){
+			db.transaction(function(tx){
+				DAO.findAll(JSON.parse(json), "example", tx, logCallback)
+			});
+		}
+		function findPK(pk){
+			db.transaction(function(tx){
+				DAO.find(pk, "example", tx, logCallback);
+			});
+		}
+		function edit(json){
+			db.transaction(function(tx){
+				DAO.edit(JSON.parse(json), "example", tx, logCallback);
+			});
+		}
+		function remove(json){
+			db.transaction(function(tx){
+				DAO.delAll(JSON.parse(json), "example", tx, logCallback)
+			});
+		}
+		function removePK(pk){
+			db.transaction(function(tx){
+				DAO.del(pk, "example", tx, logCallback);
+			});
+		}
+
+	</script>
+</body>
+</html>
