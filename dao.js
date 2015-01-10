@@ -1,9 +1,12 @@
-var __tables={
-	example : ["rowid", "rowdata"]
+var __columns={
 };
 
 var __primaryKeys={
-	example : "rowid"
+};
+
+function setTable(tableName, columns, primaryKey){
+	__columns[tableName] = columns.slice(0);
+	__primaryKeys[tableName] = primaryKey;
 }
 
 function __vquotes(num){
@@ -14,6 +17,7 @@ function __vquotes(num){
 		ss.push("?");;
 	return "(" + ss.join(",") + ")";
 }
+
 function __vquotes2(rownum, colnum){
 	if (rownum * colnum == 0)
 		return "";
@@ -95,7 +99,7 @@ SqlHandler.prototype.PKQueryCallback = function (callback){
 }
 
 function insertObjectToTable(object, tableName, transaction, callback){
-	var cols = __tables[tableName];
+	var cols = __columns[tableName];
 	var arrCol = [];
 	var arrObj = [];
 	for (var i in cols){
@@ -114,7 +118,7 @@ function insertObjectToTable(object, tableName, transaction, callback){
 
 function editObjectInTable(object, tableName, transaction, callback){
 	var pk = __primaryKeys[tableName];
-	var cols = __tables[tableName];
+	var cols = __columns[tableName];
 	var arrCol = [];
 	var arrObj = [];
 	for (var i in cols){
@@ -131,7 +135,7 @@ function editObjectInTable(object, tableName, transaction, callback){
 }
 
 function insertTidyArrayToTable(array, tableName, transaction, callback){
-	var cols = __tables[tableName];
+	var cols = __columns[tableName];
 	var arrCol = [];
 	var arrObj = [];
 	if (array.length == 0)
@@ -151,14 +155,12 @@ function insertTidyArrayToTable(array, tableName, transaction, callback){
 		"insert into " + tableName
 		+ "(" + arrCol.join(",") + ") "
 		+ __vquotes2(array.length, arrCol.length);
-	console.log(sql);
-	console.log(arrObj);
 	var ret = new SqlHandler();
 	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
 }
 
 function insertArrayToTable(array, tableName, transaction, callback){
-	var cols = __tables[tableName];
+	var cols = __columns[tableName];
 	var arrCol = [];
 	var arrObj = [];
 	if (array.length == 0)
@@ -177,12 +179,10 @@ function insertArrayToTable(array, tableName, transaction, callback){
 		for (var p in arrCol)
 			arrObj.push(cObj[arrCol[p]]);
 	}
-	console.log(arrCol, arrObj);
 	var sql = 
 		"insert into " + tableName
 		+ "(" + arrCol.join(",") + ") "
 		+ __vquotes2(array.length, arrCol.length);
-	console.log(sql);
 	var ret = new SqlHandler();
 	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
 }
@@ -205,7 +205,30 @@ function findPK(PK, tableName, transaction, callback){
 	var sql = 
 		"select * from " + tableName
 		+ " where " + __primaryKeys[tableName] + " = ?";
-	console.log(sql);
 	var ret = new SqlHandler();
 	transaction.executeSql(sql, [PK], ret.PKQueryCallback(callback), ret.errorCallback(callback));
 }
+
+function remove(object, tableName, transaction, callback){
+	var arrCol = [];
+	var arrObj = [];
+	for (var p in key){
+		arrCol.push(p + " = ?");
+		arrObj.push(key[p]);
+	}
+
+	var sql =
+		"delete from " + tableName
+		+ " where " +  arrCol.join(" and ");
+		var ret = new SqlHandler();
+	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
+}
+
+function removePK(PK, tableName, transaction, callback){
+	var sql = 
+		"delete from " + tableName
+		+ " where " + __primaryKeys[tableName] + " = ?";
+	var ret = new SqlHandler();
+	transaction.executeSql(sql, [PK], ret.PKQueryCallback(callback), ret.errorCallback(callback));
+}
+
