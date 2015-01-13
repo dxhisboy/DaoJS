@@ -3,18 +3,18 @@ var DAO = {
 	logErr : true
 
 };
-DAO.__columns={
+DAO.columns={
 };
 
-DAO.__primaryKeys={
+DAO.primaryKeys={
 };
 
-DAO.setTable = function setTable(tableName, columns, primaryKey){
-	DAO.__columns[tableName] = columns.slice(0);
-	DAO.__primaryKeys[tableName] = primaryKey;
+DAO.reg = function (tableName, columns, primaryKey){
+	DAO.columns[tableName] = columns.slice(0);
+	DAO.primaryKeys[tableName] = primaryKey;
 };
 
-DAO.__vquotes = function __vquotes(num){
+DAO.vq = function (num){
 	if (num == 0)
 		return "()";
 	var ss = [];
@@ -23,7 +23,7 @@ DAO.__vquotes = function __vquotes(num){
 	return "(" + ss.join(",") + ")";
 };
 
-DAO.__vquotes2 = function __vquotes2(rownum, colnum){
+DAO.vq2 = function (rownum, colnum){
 	if (rownum * colnum == 0)
 		return "";
 	var sel = [];
@@ -36,7 +36,7 @@ DAO.__vquotes2 = function __vquotes2(rownum, colnum){
 	return ss.join(" union all ");
 };
 
-DAO.objectFromResultSet = function objectFromResultSet(resultSet, object){
+DAO.get = function (resultSet, object){
 	object = object || new Object();
 	var item = resultSet.rows.item(0);
 	for (var p in item)
@@ -44,7 +44,7 @@ DAO.objectFromResultSet = function objectFromResultSet(resultSet, object){
 	return object;
 };
 
-DAO.objectFromResultSetI = function objectFromResultSetI(resultSet, index, object){
+DAO.getI = function objectFromResultSetI(resultSet, index, object){
 	object = object || new Object();
 	var item = resultSet.rows.item(index);
 	for (var p in item)
@@ -52,11 +52,11 @@ DAO.objectFromResultSetI = function objectFromResultSetI(resultSet, index, objec
 	return object;
 };
 
-DAO.arrayFromResultSet = function arrayFromResultSet(resultSet){
+DAO.getAll = function arrayFromResultSet(resultSet){
 	var len = resultSet.rows.length;
 	var arr = [];
 	for (var i = 0; i < len; i ++)
-		arr.push(DAO.objectFromResultSetI(resultSet, i));
+		arr.push(DAO.getI(resultSet, i));
 	return arr;
 };
 
@@ -68,7 +68,7 @@ DAO.SqlHandler = function SqlHandler(){
 }
 
 
-DAO.SqlHandler.prototype.successCallback = function(callback){
+DAO.SqlHandler.prototype.winCB = function(callback){
 	self = this;
 	return function(transaction, resultSet){
 		self.success = true;
@@ -78,7 +78,7 @@ DAO.SqlHandler.prototype.successCallback = function(callback){
 	}
 }
 
-DAO.SqlHandler.prototype.errorCallback = function (callback){
+DAO.SqlHandler.prototype.errorCB = function (callback){
 	self = this;
 	return function(transaction, error){
 		if (DAO.logErr) console.log(error.message);
@@ -89,28 +89,28 @@ DAO.SqlHandler.prototype.errorCallback = function (callback){
 	}
 }
 
-DAO.SqlHandler.prototype.queryCallback = function (callback){
+DAO.SqlHandler.prototype.queryCB = function (callback){
 	self = this;
 	return function(transaction, resultSet){
 		self.success = true;
-		self.result = DAO.arrayFromResultSet(resultSet);
+		self.result = DAO.getAll(resultSet);
 		if (callback)
 			callback(self, transaction);
 	}
 }
 
-DAO.SqlHandler.prototype.PKQueryCallback = function (callback){
+DAO.SqlHandler.prototype.PKQCB = function (callback){
 	self = this;
 	return function(transaction, resultSet){
 		self.success = true;
-		self.result = DAO.arrayFromResultSet(resultSet);
+		self.result = DAO.getAll(resultSet);
 		if (callback)
 			callback(self, transaction);
 	}
 }
 
-DAO.insertObjectToTable = function insertObjectToTable(object, tableName, transaction, callback){
-	var cols = DAO.__columns[tableName];
+DAO.add = function (object, tableName, transaction, callback){
+	var cols = DAO.columns[tableName];
 	var arrCol = [];
 	var arrObj = [];
 	for (var i in cols){
@@ -122,15 +122,15 @@ DAO.insertObjectToTable = function insertObjectToTable(object, tableName, transa
 	var sql =
 		"insert into " + tableName 
 		+ "(" + arrCol.join(",") + ") values"
-		+ DAO.__vquotes(arrCol.length);
+		+ DAO.vq(arrCol.length);
 	if (DAO.logSQL) console.log(sql, arrObj);
 	var ret = new DAO.SqlHandler();
-	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
+	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
-DAO.editObjectInTable = function editObjectInTable(object, tableName, transaction, callback){
-	var pk = DAO.__primaryKeys[tableName];
-	var cols = DAO.__columns[tableName];
+DAO.edit = function (object, tableName, transaction, callback){
+	var pk = DAO.primaryKeys[tableName];
+	var cols = DAO.columns[tableName];
 	var arrCol = [];
 	var arrObj = [];
 	for (var i in cols){
@@ -142,14 +142,14 @@ DAO.editObjectInTable = function editObjectInTable(object, tableName, transactio
 	var sql =
 		"insert or replace into " + tableName 
 		+ "(" + arrCol.join(",") + ") values"
-		+ DAO.__vquotes(arrCol.length);
+		+ DAO.vq(arrCol.length);
 	if (DAO.logSQL) console.log(sql, arrObj);
 	var ret = new DAO.SqlHandler();
-	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
+	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
-DAO.insertArrayToTable = function insertTidyArrayToTable(array, tableName, transaction, callback, isTidy){
-	var cols = DAO.__columns[tableName];
+DAO.addAll = function (array, tableName, transaction, callback, isTidy){
+	var cols = DAO.columns[tableName];
 	var arrCol = [];
 	var arrObj = [];
 	if (array.length == 0)
@@ -178,13 +178,13 @@ DAO.insertArrayToTable = function insertTidyArrayToTable(array, tableName, trans
 	var sql = 
 		"insert into " + tableName
 		+ "(" + arrCol.join(",") + ") "
-		+ DAO.__vquotes2(array.length, arrCol.length);
+		+ DAO.vq2(array.length, arrCol.length);
 	if (DAO.logSQL) console.log(sql, arrObj);
 	var ret = new DAO.SqlHandler();
-	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
+	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
-DAO.find = function find(key, tableName, transaction, callback){
+DAO.findAll = function (key, tableName, transaction, callback){
 	var arrCol = [];
 	var arrObj = [];
 	for (var p in key){
@@ -196,19 +196,19 @@ DAO.find = function find(key, tableName, transaction, callback){
 		+ " where " + arrCol.join(" and ");
 	if (DAO.logSQL) console.log(sql, arrObj);
 	var ret = new DAO.SqlHandler();
-	transaction.executeSql(sql, arrObj, ret.queryCallback(callback), ret.errorCallback(callback));
+	transaction.executeSql(sql, arrObj, ret.queryCB(callback), ret.errorCB(callback));
 }
 
-DAO.findPK = function findPK(PK, tableName, transaction, callback){
+DAO.find = function (PK, tableName, transaction, callback){
 	var sql = 
 		"select * from " + tableName
 		+ " where " + this.__primaryKeys[tableName] + " = ?";
 	if (DAO.logSQL) console.log(sql, [pk]);
 	var ret = new DAO.SqlHandler();
-	transaction.executeSql(sql, [PK], ret.PKQueryCallback(callback), ret.errorCallback(callback));
+	transaction.executeSql(sql, [PK], ret.PKQCB(callback), ret.errorCB(callback));
 }
 
-DAO.remove = function remove(key, tableName, transaction, callback){
+DAO.delAll = function (key, tableName, transaction, callback){
 	var arrCol = [];
 	var arrObj = [];
 	for (var p in key){
@@ -221,15 +221,17 @@ DAO.remove = function remove(key, tableName, transaction, callback){
 		+ " where " +  arrCol.join(" and ");
 	if (DAO.logSQL) console.log(sql, arrObj);
 	var ret = new DAO.SqlHandler();
-	transaction.executeSql(sql, arrObj, ret.successCallback(callback), ret.errorCallback(callback));
+	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
-DAO.removePK = function removePK(PK, tableName, transaction, callback){
+DAO.del = function (PK, tableName, transaction, callback){
 	var sql = 
 		"delete from " + tableName
-		+ " where " + DAO.__primaryKeys[tableName] + " = ?";
+		+ " where " + DAO.primaryKeys[tableName] + " = ?";
 	if (DAO.logSQL) console.log(sql, [PK]);
 	var ret = new DAO.SqlHandler();
-	transaction.executeSql(sql, [PK], ret.PKQueryCallback(callback), ret.errorCallback(callback));
+	transaction.executeSql(sql, [PK], ret.winCB(callback), ret.errorCB(callback));
 }
 
+DAO.recvObjects = function (url, method, parameters, format){
+}
