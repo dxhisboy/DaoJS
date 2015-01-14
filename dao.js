@@ -233,5 +233,55 @@ DAO.del = function (PK, tableName, transaction, callback){
 	transaction.executeSql(sql, [PK], ret.winCB(callback), ret.errorCB(callback));
 }
 
-DAO.recvObjects = function (url, method, parameters, format){
+DAO.merge(baseobj, anotherobj, overwrite){
+	if (overwrite)
+		for (var p in anotherobj){
+			baseobj[p] = anotherobj[p];
+		}
+	else
+		for (var p in anotherobj)
+			if (baseobj[p] === undefined)
+				baseobj[p] = anotherobj[p];
+	return baseobj;
+}
+
+DAO.nmerge(obj1, obj2, overwrite){
+	var ret = {};
+	DAO.merge(ret, obj1);
+	DAO.merge(ret, obj2, overwrite);
+	return ret;
+}
+
+DAO.recv = function (url, method, parameters, format){
+	if (method === undefined)
+		method = "GET";
+	method = method.toUpperCase();
+	if (format === undefined){
+		if (method == "GET")
+			format = "URL"
+		else
+			format = "JSON"
+	}
+	format = format.toUpperCase();
+	var data;
+	if (format == "JSON")
+		data = JSON.stringify(parameters);
+	else
+		data = parameters;
+	var ret = undefined;
+	$.ajax({
+		url : url,
+		type : method,
+		async : false,
+		data : data,
+		dataType : "json",
+		success : function(json){
+			ret = json;
+		},
+		error : function(e){
+			if (logErr)
+				console.log(e);
+		}
+	});
+	return ret;
 }
