@@ -1,4 +1,9 @@
 var DAO = function(){
+	this.logSQL = false;
+	this.logErr = true;
+	this.preDb = function(data){return data;};
+	this.preSend = function(data){return data;};
+	this.postRecv = function(data){return data;};
 };
 
 DAO.prototype.columns={
@@ -87,7 +92,7 @@ DAO.prototype.SqlHandler.prototype.winCB = function(callback){
 DAO.prototype.SqlHandler.prototype.errorCB = function (callback){
 	self = this;
 	return function(transaction, error){
-		if (this.logErr) console.log(error.message);
+		if (this.logErr) console.log(error);
 		self.success = false;
 		self.error = error;
 		if (callback)
@@ -138,7 +143,7 @@ DAO.prototype.add = function (object, tableName, transaction, callback){
 	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
-DAO.prototype.addn2e = function (object, tableName, transaction, callback){
+/*DAO.prototype.addn2e = function (object, tableName, transaction, callback){
 	tableName = tableName.toUpperCase();
 	object = this.preDb(object);
 	var cols = this.columns[tableName];
@@ -155,7 +160,7 @@ DAO.prototype.addn2e = function (object, tableName, transaction, callback){
 	if (this.logSQL) console.log(sql, arrObj);
 	var ret = new this.SqlHandler();
 	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
-}
+}*/
 
 DAO.prototype.edit = function (object, tableName, transaction, callback){
 	tableName = tableName.toUpperCase();
@@ -179,7 +184,7 @@ DAO.prototype.edit = function (object, tableName, transaction, callback){
 	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
-DAO.prototype.addAll = function (array, tableName, transaction, callback, isTidy){
+/*DAO.prototype.addAll = function (array, tableName, transaction, callback, isTidy){
 	tableName = tableName.toUpperCase();
 	var bak = array;
 	array = [];
@@ -219,7 +224,7 @@ DAO.prototype.addAll = function (array, tableName, transaction, callback, isTidy
 		transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 		arrObj.push(cObj[arrCol[p]]);
 	}
-}
+}*/
 
 DAO.prototype.findAll = function (key, tableName, transaction, callback){
 	tableName = tableName.toUpperCase();
@@ -274,7 +279,7 @@ DAO.prototype.del = function (PK, tableName, transaction, callback){
 	transaction.executeSql(sql, [PK], ret.winCB(callback), ret.errorCB(callback));
 }
 
-DAO.prototype.merge = function(baseobj, anotherobj, overwrite){
+/*DAO.prototype.merge = function(baseobj, anotherobj, overwrite){
 	if (overwrite)
 		for (var p in anotherobj){
 			baseobj[p] = anotherobj[p];
@@ -286,53 +291,12 @@ DAO.prototype.merge = function(baseobj, anotherobj, overwrite){
 	return baseobj;
 }
 
-DAO.nmerge(obj1, obj2, overwrite){
-	var ret = {};
-	DAO.merge(ret, obj1);
-	DAO.merge(ret, obj2, overwrite);
-	return ret;
-}
-
-DAO.recv = function (url, method, parameters, format){
-	if (method === undefined)
-		method = "GET";
-	method = method.toUpperCase();
-	if (format === undefined){
-		if (method == "GET")
-			format = "URL"
-		else
-			format = "JSON"
-	}
-	format = format.toUpperCase();
-	var data;
-	if (format == "JSON")
-		data = JSON.stringify(parameters);
-	else
-		data = parameters;
-	var ret = undefined;
-	$.ajax({
-		url : url,
-		type : method,
-		async : false,
-		data : data,
-		dataType : "json",
-		success : function(json){
-			ret = json;
-		},
-		error : function(e){
-			if (logErr)
-				console.log(e);
-		}
-	});
-	return ret;
-}
-
 DAO.prototype.nmerge = function(obj1, obj2, overwrite){
 	var ret = {};
 	this.merge(ret, obj1);
 	this.merge(ret, obj2, overwrite);
 	return ret;
-}
+}*/
 
 DAO.prototype.recv = function (url, method, parameters, format){
 	if (method === undefined)
@@ -351,6 +315,7 @@ DAO.prototype.recv = function (url, method, parameters, format){
 	else
 		data = parameters;
 	var ret = undefined;
+	var postRecv = this.postRecv;
 	$.ajax({
 		url : url,
 		type : method,
@@ -358,7 +323,7 @@ DAO.prototype.recv = function (url, method, parameters, format){
 		data : data,
 		dataType : "json",
 		success : function(json){
-			ret = json;
+			ret = postRecv(json);
 		},
 		error : function(e){
 			if (this.logErr)
@@ -368,7 +333,7 @@ DAO.prototype.recv = function (url, method, parameters, format){
 	return ret;
 }
 
-var isArray = function(obj) {
+/*var isArray = function(obj) {
 	return Object.prototype.toString.call(obj) === '[object Array]';
 }; 
 
@@ -389,6 +354,7 @@ DAO.prototype.send = function(object, url, callback){
 		dataType : "json",
 		success : function(json){
 			ret = json;
+			callback(ret);
 		},
 		error : function(e){
 			if (this.logErr)
@@ -396,9 +362,13 @@ DAO.prototype.send = function(object, url, callback){
 		}
 	});
 
-}
+}*/
 
-this.logSQL = true;
-this.logErr = true;
-this.preDb = function(data){return data;};
-this.preSend = function(data){return data;};
+DAO.prototype.index = function(tableName, fields, tx){
+	var sql = 
+		"create index " + tableName + "_" + fields.join("_") + " on "
+		+ tableName + "(" + fields.join(",") + ")";
+	if (this.logSQL) 
+		console.log(sql);
+	tx.executeSql(sql);
+}
