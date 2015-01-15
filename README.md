@@ -2,8 +2,6 @@
 
 A DAO framework for WebSQL and Cordova Sqlite Plugin.
 
-Project sponsored by ZeroWire(Shanghai) Inc.
-
 ##HighLight
 
 No code generation is needed to run this library.
