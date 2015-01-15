@@ -1,12 +1,14 @@
 <html>
 <head>
 	<title>DaoJs Demos</title>
-	<script src="dao.js"></script>
+	<script src="http://libs.useso.com/js/jquery/1.11.1/jquery.min.js"></script>
+	<script src="js/dao.js"> </script>
+	<script src="js/dao-conf-sample.js"></script>
 </head>
 <body>
 	<script>
 		var db = openDatabase('mydb', '1.0', 'example', 5 * 1024 * 1024);
-		DAO.reg('example', ['rowid', 'rowdata'], 'rowid');
+		dao.reg('example', ['rowid', 'rowdata'], 'rowid');
 		function logCallback(rt, tx){
 			console.log(rt);
 		}
@@ -18,38 +20,38 @@
 		}
 		function insert(json){
 			db.transaction(function(tx){
-				DAO.add(JSON.parse(json), "example", tx, logCallback);
+				dao.add(JSON.parse(json), "example", tx, logCallback);
 			});
 		}
 		function insertArray(json){
 			db.transaction(function(tx){
-				DAO.addAll(JSON.parse(json), "example", tx, logCallback);
+				dao.addAll(JSON.parse(json), "example", tx, logCallback);
 			});
 		}
 
 		function find(json){
 			db.transaction(function(tx){
-				DAO.findAll(JSON.parse(json), "example", tx, logCallback)
+				dao.findAll(JSON.parse(json), "example", tx, logCallback)
 			});
 		}
 		function findPK(pk){
 			db.transaction(function(tx){
-				DAO.find(pk, "example", tx, logCallback);
+				dao.find(pk, "example", tx, logCallback);
 			});
 		}
 		function edit(json){
 			db.transaction(function(tx){
-				DAO.edit(JSON.parse(json), "example", tx, logCallback);
+				dao.edit(JSON.parse(json), "example", tx, logCallback);
 			});
 		}
 		function remove(json){
 			db.transaction(function(tx){
-				DAO.delAll(JSON.parse(json), "example", tx, logCallback)
+				dao.delAll(JSON.parse(json), "example", tx, logCallback)
 			});
 		}
 		function removePK(pk){
 			db.transaction(function(tx){
-				DAO.del(pk, "example", tx, logCallback);
+				dao.del(pk, "example", tx, logCallback);
 			});
 		}
 
