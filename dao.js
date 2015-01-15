@@ -286,6 +286,47 @@ DAO.prototype.merge = function(baseobj, anotherobj, overwrite){
 	return baseobj;
 }
 
+DAO.nmerge(obj1, obj2, overwrite){
+	var ret = {};
+	DAO.merge(ret, obj1);
+	DAO.merge(ret, obj2, overwrite);
+	return ret;
+}
+
+DAO.recv = function (url, method, parameters, format){
+	if (method === undefined)
+		method = "GET";
+	method = method.toUpperCase();
+	if (format === undefined){
+		if (method == "GET")
+			format = "URL"
+		else
+			format = "JSON"
+	}
+	format = format.toUpperCase();
+	var data;
+	if (format == "JSON")
+		data = JSON.stringify(parameters);
+	else
+		data = parameters;
+	var ret = undefined;
+	$.ajax({
+		url : url,
+		type : method,
+		async : false,
+		data : data,
+		dataType : "json",
+		success : function(json){
+			ret = json;
+		},
+		error : function(e){
+			if (logErr)
+				console.log(e);
+		}
+	});
+	return ret;
+}
+
 DAO.prototype.nmerge = function(obj1, obj2, overwrite){
 	var ret = {};
 	this.merge(ret, obj1);
