@@ -2,6 +2,7 @@ var DAO = function(){
 	this.logSQL = false;
 	this.logErr = true;
 	this.preDb = function(data){return data;};
+	this.postSelect = function(data){return data};
 	this.preSend = function(data){return data;};
 	this.postRecv = function(data){return data;};
 };
@@ -18,6 +19,17 @@ DAO.prototype.reg = function (tableName, columns, primaryKey){
 	this.columns[tableName] = columns.slice(0);
 	this.primaryKeys[tableName] = primaryKey;
 };
+
+DAO.prototype.index = function(tableName, fields, tx){
+	var sql = 
+		"create index " + tableName + "_" + fields.join("_") + " on "
+		+ tableName + "(" + fields.join(",") + ")";
+	if (this.logSQL) 
+		console.log(sql);
+	tx.executeSql(sql, [], undefined, function(tx, rt){
+		if (this.logErr) console.log(rt.error);
+	});
+}
 
 DAO.prototype.n2e = function (param){
 	if (param === undefined)
@@ -52,7 +64,7 @@ DAO.prototype.get = function (resultSet, object){
 	var item = resultSet.rows.item(0);
 	for (var p in item)
 		object[p] = item[p];
-	return object;
+	return this.postSelect(object);
 };
 
 DAO.prototype.getI = function objectFromResultSetI(resultSet, index, object){
@@ -60,7 +72,7 @@ DAO.prototype.getI = function objectFromResultSetI(resultSet, index, object){
 	var item = resultSet.rows.item(index);
 	for (var p in item)
 		object[p] = item[p];
-	return object;
+	return this.postSelect(object);
 };
 
 DAO.prototype.getAll = function arrayFromResultSet(resultSet){
@@ -71,13 +83,17 @@ DAO.prototype.getAll = function arrayFromResultSet(resultSet){
 	return arr;
 };
 
-DAO.prototype.SqlHandler = function SqlHandler(){
+DAO.prototype.SqlHandler = function SqlHandler(dao){
+	this.dao = dao;
 	this.success = undefined;
 	this.rowsAffected = 0;
 	this.error = undefined;
 	this.result = undefined;
 }
 
+DAO.prototype.handler = function(){
+	return new this.SqlHandler(this);
+}
 
 DAO.prototype.SqlHandler.prototype.winCB = function(callback){
 	self = this;
@@ -104,7 +120,7 @@ DAO.prototype.SqlHandler.prototype.queryCB = function (callback){
 	self = this;
 	return function(transaction, resultSet){
 		self.success = true;
-		self.result = this.getAll(resultSet);
+		self.result = self.dao.getAll(resultSet);
 		if (callback)
 			callback(self, transaction);
 	}
@@ -114,7 +130,7 @@ DAO.prototype.SqlHandler.prototype.PKQCB = function (callback){
 	self = this;
 	return function(transaction, resultSet){
 		self.success = true;
-		self.result = this.getAll(resultSet);
+		self.result = self.dao.getAll(resultSet)[0];
 		if (callback)
 			callback(self, transaction);
 	}
@@ -139,7 +155,7 @@ DAO.prototype.add = function (object, tableName, transaction, callback){
 		+ "(" + arrCol.join(",") + ") values"
 		+ this.vq(arrCol.length);
 	if (this.logSQL) console.log(sql, arrObj);
-	var ret = new this.SqlHandler();
+	var ret = this.handler();
 	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
@@ -158,7 +174,7 @@ DAO.prototype.add = function (object, tableName, transaction, callback){
 		+ "(" + arrCol.join(",") + ") values"
 		+ this.vq(arrCol.length);
 	if (this.logSQL) console.log(sql, arrObj);
-	var ret = new this.SqlHandler();
+	var ret = this.handler();
 	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }*/
 
@@ -180,7 +196,7 @@ DAO.prototype.edit = function (object, tableName, transaction, callback){
 		+ "(" + arrCol.join(",") + ") values"
 		+ this.vq(arrCol.length);
 	if (this.logSQL) console.log(sql, arrObj);
-	var ret = new this.SqlHandler();
+	var ret = this.handler();
 	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
@@ -220,14 +236,16 @@ DAO.prototype.edit = function (object, tableName, transaction, callback){
 		for (var p in arrCol)
 			arrObj[i] = cObj[cols[i]];
 		if (this.logSQL) console.log(sql, arrObj);
-		var ret = new this.SqlHandler();
+		var ret = this.handler();
 		transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 		arrObj.push(cObj[arrCol[p]]);
 	}
 }*/
 
-DAO.prototype.findAll = function (key, tableName, transaction, callback){
+DAO.prototype.findAll = function (key, tableName, transaction, callback, column){
 	tableName = tableName.toUpperCase();
+	if (column === undefined)
+		column = "*";
 	var arrCol = [];
 	var arrObj = [];
 	for (var p in key){
@@ -235,21 +253,52 @@ DAO.prototype.findAll = function (key, tableName, transaction, callback){
 		arrObj.push(key[p]);
 	}
 	var sql = 
-		"select * from " + tableName
-		+ " where " + arrCol.join(" and ");
+		"select " + column + " from " + tableName;
+	if (arrCol.length > 0)
+		sql += " where " + arrCol.join(" and ");
 	if (this.logSQL) console.log(sql, arrObj);
-	var ret = new this.SqlHandler();
+	var ret = this.handler();
 	transaction.executeSql(sql, arrObj, ret.queryCB(callback), ret.errorCB(callback));
 }
 
-DAO.prototype.find = function (PK, tableName, transaction, callback){
+DAO.prototype.find = function (PK, tableName, transaction, callback, column){
 	tableName = tableName.toUpperCase();
+	if (column === undefined)
+		column = "*";
 	var sql = 
-		"select * from " + tableName
-		+ " where " + this.__primaryKeys[tableName] + " = ?";
-	if (this.logSQL) console.log(sql, [pk]);
-	var ret = new this.SqlHandler();
+		"select " + column + " from " + tableName
+		+ " where " + this.primaryKeys[tableName] + " = ?";
+	if (this.logSQL) console.log(sql, [PK]);
+	var ret = this.handler();
 	transaction.executeSql(sql, [PK], ret.PKQCB(callback), ret.errorCB(callback));
+}
+
+DAO.prototype.updateSet = function(key, data, tableName, transaction, callback){
+	tableName = tableName.toUpperCase();
+	data = this.preDb(data);
+	var arrKCol = [];
+	var arrDCol = [];
+	var arrObj = [];
+	var cols = this.columns[tableName];	
+
+	for (var i in cols){
+		if (!(data[cols[i]] === undefined)){
+			arrDCol.push(cols[i] + " = ?");
+			arrObj.push(data[cols[i]]);
+		}
+	}
+
+	for (var p in key){
+		arrKCol.push(p + " = ?");
+		arrObj.push(key[p]);
+	}
+	var sql =
+		"update " + tableName + " set "
+		+ arrDCol.join(",") + " where "
+		+ arrKCol.join(",");
+	if (this.logSQL) console.log(sql, arrObj);
+	var ret = this.handler();
+	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
 DAO.prototype.delAll = function (key, tableName, transaction, callback){
@@ -262,10 +311,11 @@ DAO.prototype.delAll = function (key, tableName, transaction, callback){
 	}
 
 	var sql =
-		"delete from " + tableName
-		+ " where " +  arrCol.join(" and ");
+		"delete from " + tableName;
+	if (arrCol.length > 0)
+		sql += " where " +  arrCol.join(" and ");
 	if (this.logSQL) console.log(sql, arrObj);
-	var ret = new this.SqlHandler();
+	var ret = this.handler();
 	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
@@ -275,7 +325,7 @@ DAO.prototype.del = function (PK, tableName, transaction, callback){
 		"delete from " + tableName
 		+ " where " + this.primaryKeys[tableName] + " = ?";
 	if (this.logSQL) console.log(sql, [PK]);
-	var ret = new this.SqlHandler();
+	var ret = this.handler();
 	transaction.executeSql(sql, [PK], ret.winCB(callback), ret.errorCB(callback));
 }
 
@@ -364,11 +414,4 @@ DAO.prototype.send = function(object, url, callback){
 
 }*/
 
-DAO.prototype.index = function(tableName, fields, tx){
-	var sql = 
-		"create index " + tableName + "_" + fields.join("_") + " on "
-		+ tableName + "(" + fields.join(",") + ")";
-	if (this.logSQL) 
-		console.log(sql);
-	tx.executeSql(sql);
-}
+

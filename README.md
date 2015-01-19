@@ -113,21 +113,23 @@ Add an object to a table via transaction, on conflict, replace it.
 + **SQLTransaction transaction**: transaction for executing SQL.
 + **DaoCallback callback**: callback after inseration or replaction.
 
-###void DAO.findAll(Object condition, String tableName, SQLTransaction transaction, DaoCallback callback)
+###void DAO.findAll(Object condition, String tableName, SQLTransaction transaction, DaoCallback callback, optional String selection)
 Find object from table, where column[p] = key[p], less than and more than is not currently supported.
 
 + **Object key**: a standard json object, forms by KV-pair.
 + **String tableName**: table to find object from.
 + **SQLTransaction transaction**: transaction for executing SQL.
 + **DaoCallback callback**: callback to process the result.
++ **String selection**: replace "select * from ..." in SQL with "select selection from ...", for example, "max(last_update)" or "tablename, lastupdate".
 
-###void DAO.find(Object PK, String tableName, SQLTransaction transaction, DaoCallback callback)
+###void DAO.find(Object PK, String tableName, SQLTransaction transaction, DaoCallback callback, optional String selection)
 Find object from table, whose primary key equals PK.
 
 + **Object PK**: String, Date or Number, which is the primary key to find, multiple primary key is not currently supported.
 + **String tableName**: table to find object from.
 + **SQLTransaction transaction**: transaction for executing SQL.
 + **DaoCallback callback**: callback to process the result.
++ **String selection**: replace "select * from ..." in SQL with "select selection from ...", for example, "max(last_update)" or "tablename, lastupdate".
 
 ###void DAO.delAll(Object condition, String tableName, SQLTransaction transaction, DaoCallback callback)
 Delete object from table, where column[p] = key[p], less than and more than is not currently supported.
