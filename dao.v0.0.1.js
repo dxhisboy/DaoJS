@@ -159,24 +159,6 @@ DAO.prototype.add = function (object, tableName, transaction, callback){
 	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
 }
 
-/*DAO.prototype.addn2e = function (object, tableName, transaction, callback){
-	tableName = tableName.toUpperCase();
-	object = this.preDb(object);
-	var cols = this.columns[tableName];
-	var arrCol = [];
-	var arrObj = [];
-	for (var i in cols){
-		arrCol.push(cols[i]);
-		arrObj.push(n2e(object[cols[i]]));
-	}
-	var sql =
-		"insert into " + tableName 
-		+ "(" + arrCol.join(",") + ") values"
-		+ this.vq(arrCol.length);
-	if (this.logSQL) console.log(sql, arrObj);
-	var ret = this.handler();
-	transaction.executeSql(sql, arrObj, ret.winCB(callback), ret.errorCB(callback));
-}*/
 
 DAO.prototype.edit = function (object, tableName, transaction, callback){
 	tableName = tableName.toUpperCase();
